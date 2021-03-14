@@ -40,7 +40,7 @@ plot(time_interp, wave_interp);
 
 
 
-time_eye = ((1:2*packet)-packet)*20e-12/sig_freq;
+time_eye = ((1:packet)-packet/2)*20e-12/sig_freq;
 
 nbr_traces = 1998;
 eye = reshape(wave_interp(offset:(packet*1998+offset-1)), [packet, 1998]);
@@ -53,7 +53,7 @@ ps = 1e-12;
 time_eye_ps = time_eye/ps;
 mV = 1e-3;
 eye_mv = eye/mV;
-plot(time_eye_ps, [eye_mv; eye_mv]);
+plot(time_eye_ps, eye_mv);
 % ylim([-400, 400]);
 % xlim([-240*2/2, 250*2/2]);
 % title("Eye Diagram - 6GHz signal - 4 GHz Bandwidth");
