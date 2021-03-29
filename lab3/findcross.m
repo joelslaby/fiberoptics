@@ -82,41 +82,5 @@ function [crossing, middlepts] = findcross(time_eye, eye, packet, thresh)
     end
     [minrise(1, 2), maxrise(1, 2), minfall(1, 2), maxfall(1, 2)];
     middlepts = [minrise(1,:); maxrise(1,:); minfall(1,:); maxfall(1,:)];
-%     for i=1:2
-%         for j=1:2
-%             for k=1:3
-%                 c = ctr(i, j)
-%                 crossing(i, j, k, c:L) = nan;
-%             end
-%         end
-%     end
     crossing = crossing(1:2, 1:2, 1:3, 1:ctr-1);
-%     crossing = crossing(~isnan(crossing));
-
-%     crossing = [];
-%     if(first)
-%         for i=1:length(eye)
-%             if((eye(1, i)<thresh) & (find(eye(:, i)>thresh, 1) < packet) & rise~=2)
-%                 id1 = find(eye(:, i)>thresh, 1);
-%                 cross = InterX([time_eye(id1), time_eye(id1-1); eye(id1, i), eye(id1-1, i)], [time_eye(id1), time_eye(id1-1); thresh, thresh]);
-%                 crossing = [crossing, cross(1)];
-%             elseif((eye(1, i)>thresh) & (find(eye(:, i)<thresh, 1) < packet) & rise~=1)
-%                 id1 = find(eye(:, i)<thresh, 1);
-%                 cross = InterX([time_eye(id1), time_eye(id1-1); eye(id1, i), eye(id1-1, i)], [time_eye(id1), time_eye(id1-1); thresh, thresh]);
-%                 crossing = [crossing, cross(1)];   
-%             end
-%         end
-%     else
-%         for i=1:length(eye)
-%             if((eye(1, i)<thresh) & (find(eye(:, i)>thresh, 1) > packet) & rise~=2 )
-%                 id1 = find(eye(:, i)>thresh, 1);
-%                 cross = InterX([time_eye(id1), time_eye(id1-1); eye(id1, i), eye(id1-1, i)], [time_eye(id1), time_eye(id1-1); thresh, thresh]);
-%                 crossing = [crossing, cross(1)];
-%             elseif((eye(1, i)>thresh) & (find(eye(:, i)<thresh, 1) > packet) & rise~=1)
-%                 id1 = find(eye(:, i)<thresh, 1);
-%                 cross = InterX([time_eye(id1), time_eye(id1-1); eye(id1, i), eye(id1-1, i)], [time_eye(id1), time_eye(id1-1); thresh, thresh]);
-%                 crossing = [crossing, cross(1)];   
-%             end
-%         end
-%     end
 end
