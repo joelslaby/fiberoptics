@@ -46,5 +46,26 @@ waveDiff = conv(wave, diff);
 plot(time(1:endNbr)/ps, waveDiff(1:endNbr)/mV);
 % findpeaks(waveDiff(1:endNbr)/mV);
 
-% plot(time, )
+h = figure();
+set(h,'WindowStyle','docked');
+
+ss = 40e-12; %Sample Period
+fs = 1/ss; %Sample Frequency
+L = 2^15; %Sampling Length
+tt = (-L/2:L/2-1) .* ss; % Time Vector
+
+wave_p = wave(1:L);
+
+ff = (-L/2:L/2-1)/(ss*L);
+ghz = 1e9;
+fghz = ff/ghz;
+
+psd = (abs(fftshift(fft(wave_p))).*ss).^2;
+
+plot(fghz, psd); hold on;
+xlim([-5, 5]);
+% xticks(linspace(-5, 5, 11));
+xlabel("Frequency [GHz]");
+ylabel("PSD");
+title("PSD of 2 GHz Signal and 4 GHz Scope Bandwidth");
 
