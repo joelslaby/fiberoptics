@@ -20,6 +20,7 @@ T = readtable(filename);
 data = table2array(T);
 
 time = data(6:end, 1);
+time_check = time;
 wave = data(6:end, 2);
 interp_factor = 1;
 time_interp = linspace(time(1), time(end), interp_factor*length(time)-1);
@@ -28,11 +29,18 @@ time = time_interp;
 % wave_filt = lowpass(wave, 1e9, 25e9);
 
 %Clock Recovery
+%Grabs max and min and creates thresholds to find transitions
 wave_max = max(wave);
 wave_min = min(wave);
 th_1 = (wave_max+wave_min)/2;
 th_0 = (th_1 + wave_min)/2;
 th_2 = (th_1 + wave_max)/2;
+%Try different threshold creation methods
+% th_1 = (wave_max+wave_min)/2;
+% th_0 = wave_min/2;
+% th_2 = wave_max/2;
+%Loop 'discretizes' values and ensures transitions aren't falsly made into
+%a descretized point. 
 prev_state = 0;
 cur_state = 0;
 state_ctr = 10;
@@ -114,13 +122,16 @@ for i = 1:length(wave)
     prev_state = cur_state; 
 end
 
+%Converts descretized values into marking the transitions and finally
+%finding the time difference between each transition, thus giving us a list
+%of bit periods to process.
 time_changes = conv(wave_th, [1 -1]);
 time_changes(time_changes ~= 0) = 1;
 time_changes = logical(time_changes(1:end-1));
 time_differences = conv(time(time_changes), [1 -1]);
 time_differences = time_differences(2:end-1);
 
-%oldway 
+%Oldway (Wrapped in comments)
 wave_th1 = zeros(1,length(wave));
 wave_th1(wave>th_2) = 0.1;
 wave_th1(wave<th_2 & wave>th_1) = 0.05;
@@ -132,15 +143,17 @@ time_changes1 = logical(time_changes1(1:end-1));
 time_differences1 = conv(time(time_changes1), [1 -1]);
 time_differences1 = time_differences1(2:end-1);
 % time_differences = time_differences/max(time_differences);
-time_cutoff = 0.01;
+%End Old way (End wrapper)
+
+time_cutoff = 0.00; %Trims min bit periods found to remove errors
 % time_differences = time_differences(time_differences>(max(time_differences)*time_cutoff));
-time_differences = time_differences(time_differences>0*3*41e-12);
+time_differences = time_differences(time_differences>time_cutoff*3*41e-12); %Can cut out super low unexpected results
 time_differences = sort(time_differences);
 
 time_differences_norm = time_differences/min(time_differences(floor(0.25*length(time_differences)):end));
 
 bin = time_differences(time_differences_norm > 0.5 & time_differences_norm < 1.5);
-THEFREQ = 1/mean(bin)
+freq_recov = 1/mean(bin)
 histogram(time_differences, 500);
 %Plot
 ps = 1e-12;
@@ -154,7 +167,10 @@ plot(time(1:endNbr)/ps, wave(1:endNbr)/mV,time(1:endNbr)/ps, wave_th(1:endNbr)/m
 legend('original','corrected','shitty');
 % plot(time(1:endNbr)/ps, wave(1:endNbr)/mV,time(1:endNbr)/ps, wave_th(1:endNbr)/mV,time(1:endNbr)/ps, time_changes(1:endNbr)/mV); hold on;
 xlim([time(1)/ps, time(endNbr)/ps]);
+yline(th_0/mV);
+yline(th_1/mV);
 yline(th_2/mV);
+% yline(th_3/mV);
 diff = [-1, 1];
 
 waveDiff = conv(wave, diff);
@@ -172,5 +188,6 @@ waveDiff = conv(wave, diff);
 % % plot(time, )
 % hold on
 % yline(0.1)
-figure();
+h = figure();
+set(h,'WindowStyle','docked');
 plot(time_differences_norm);
