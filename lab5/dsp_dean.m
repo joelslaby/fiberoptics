@@ -14,7 +14,7 @@ plot_data = 2;
 wave_type = 0;
 select = 1;
 
-filename = 'C:\Users\deanp\Documents\GitHub\fiberoptics\lab5\media\lab5_day3_001_ALL.csv';
+filename = '\media\lab5_day3_001_ALL.csv';
     
 T = readtable(filename);
 data = table2array(T);
