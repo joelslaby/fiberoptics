@@ -3,7 +3,7 @@ close all; clearvars; clc;
 O = 4;
 offset = 6;
 
-L = 2^O-1;
+L = 2^(O)-1;
 
 sig = prbs(O,L);
 % sig = sig*2-1;
@@ -37,11 +37,14 @@ set(h,'WindowStyle','docked');
 % off = 6;
 % summed = sig + circshift(sig, off);
 
-sig_short = sig(1:10)
+sig_short = sig(3:15)
 sig
-out = conv(sig_short, flip(sig));
-t = (1:length(out))-(length(out)+1)/2;
-plot(t, out);
+circshift(sig, -2);
+out = conv(sig, flip(sig_short));
+t = (1:length(out))-(length(out)+1);
+plot(out);
+
+% prbs(3, 2)
 
 % h = figure();
 % set(h,'WindowStyle','docked');

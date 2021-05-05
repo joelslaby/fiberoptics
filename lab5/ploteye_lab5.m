@@ -6,7 +6,7 @@ close all;
 % 1 = Plot Gradient Eye Only, No param calculations, Used to center graph
 % 2 = Plot everything, Calculate all param
 % 3 = Plot all traces in Grid
-plot_data = 2;
+plot_data = 1;
 
 % -1-select fiber
 % 0-no fiber, no mod
@@ -44,9 +44,9 @@ for p=nbrTraces
         else
             selectdata = num2str(p-1, '%.2d');
         end
-        filename = strcat('media_day2/lab4_0',selectdata,'_ALL.csv');
+        filename = strcat('media_day2/lab4_002',selectdata,'_ALL.csv');
     else
-        filename = '\media\lab5_day3_009_ALL.csv';
+        filename = '\media\lab5_day4_004_ALL.csv';
     end
     T = readtable(filename);
     data = table2array(T);
@@ -81,7 +81,7 @@ for p=nbrTraces
     elseif(wave_type == 2)
         sig_offsets = [46, 38, 18, 32, 10, 20, 31, 46, 35]; % Lab 4 w/ fiber
     else
-        sig_offsets =15;
+        sig_offsets = 5;
     end
     
     offset = sig_offsets(p);
@@ -214,7 +214,7 @@ for p=nbrTraces
         O = 15;
         offset = 6;
 
-        L = 2^O-1;
+        L = 2^(O+1)-1;
 
         sig = prbs(O,L);
         sig = sig*2-1;
@@ -223,22 +223,25 @@ for p=nbrTraces
 
         bit_stream_prbs = zeros(1, length(sig));
         bit_stream_prbs(find(sumSig == -1.5)) = -1;
-        bit_stream_prbs(find(sumSig == -.5)) = -1/3;
-        bit_stream_prbs(find(sumSig == .5)) = 1/3;
+        bit_stream_prbs(find(sumSig == -.5)) = 1/3;
+        bit_stream_prbs(find(sumSig == .5)) = -1/3;
         bit_stream_prbs(find(sumSig == 1.5)) = 1;
         
-        bit_corr = conv(bit_stream, flip(bit_stream_prbs));
-        [corr_max prbs_start] = max(bit_corr)
-        shifted_prbs = circshift(bit_stream_prbs, -(length(bit_stream)-prbs_start))
-        shifted_prbs = shifted_prbs(1:length(bit_stream))
+        bit_corr = conv(bit_stream_prbs, flip(bit_stream));
+        [corr_max prbs_start] = max(bit_corr);
+       
+        
+        shifted_prbs = circshift(bit_stream_prbs, -(prbs_start - length(bit_stream)));
+        shifted_prbs = shifted_prbs(1:length(bit_stream));
 %         shifted_prbs = bit_stream_prbs((length(bit_corr)-prbs_start):(length(bit_corr)-prbs_start+length(bit_stream)-1));
         
         prbsSig = zeros(1, ptsPerPulse*nbrBits + 1);
         prbsSig(1:end-1) = repelem(shifted_prbs, ptsPerPulse);
         prbsSig(find(trig == 1)) = .5;
         prbsSig = (one_lvl_mean-zero_lvl_mean)/2*prbsSig+(one_lvl_mean+zero_lvl_mean)/2;
-      
         
+        find((shifted_prbs - bit_stream) ~= 0)
+        BER = length(find((shifted_prbs - bit_stream) ~= 0))/length(bit_stream)
 %         % Find waveform crossing points
 %         pct20 = 0.2*eye_amp + zero_lvl_mean;
 %         pct50 = (one_lvl_mean+zero_lvl_mean)/2;
@@ -419,18 +422,28 @@ for p=nbrTraces
 
         h = figure();
         set(h,'WindowStyle','docked');
-        endNbr = 1000;
+        endNbr = 10000;
         plot(time_interp(1:endNbr)/ps, wave_interp(1:endNbr)/mV);
         hold on;
         plot(time_interp(65:endNbr)/ps, driveSig(1:endNbr-64)/mV);
         plot(time_interp(65:endNbr)/ps, prbsSig(1:endNbr-64)/mV);
         legend('original','recovered','prbs');
-        xlim([time_interp(1)/ps, time_interp(endNbr)/ps]);
+        xlim([time_interp(1000)/ps, time_interp(2000)/ps]);
         
         h = figure();
         set(h,'WindowStyle','docked');
         
-        plot(bit_corr)
+        plot(bit_corr);
+        
+        h = figure();
+        set(h,'WindowStyle','docked');
+        
+        plot(bit_stream); 
+        hold on;
+        plot(shifted_prbs);
+        xlim([1, 20]);
+        legend("recovered", "prbs")
+        
     elseif(plot_data == 3)
         subplot(3, 3, p)
         surf(X, Y, scaled_eye');
