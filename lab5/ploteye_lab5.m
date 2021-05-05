@@ -46,7 +46,7 @@ for p=nbrTraces
         end
         filename = strcat('media_day2/lab4_0',selectdata,'_ALL.csv');
     else
-        filename = '\media\lab5_day3_004_ALL.csv';
+        filename = '\media\lab5_day3_009_ALL.csv';
     end
     T = readtable(filename);
     data = table2array(T);
@@ -180,14 +180,64 @@ for p=nbrTraces
 
         %Find New wave crossing points
         midpt = (mid0_lvl_std*mid1_lvl_mean + mid1_lvl_std*mid0_lvl_mean)...
-            /(mid0_lvl_std+mid1_lvl_std)
+            /(mid0_lvl_std+mid1_lvl_std);
         high_thresh = (mid1_lvl_std*one_lvl_mean + one_lvl_std*mid1_lvl_mean)...
-            /(one_lvl_std+mid1_lvl_std)
+            /(one_lvl_std+mid1_lvl_std);
         low_thresh = (mid0_lvl_std*zero_lvl_mean + zero_lvl_std*mid0_lvl_mean)...
-            /(zero_lvl_std+mid0_lvl_std)
+            /(zero_lvl_std+mid0_lvl_std);
         
         % Recover Bit Stream
-        middledata = 
+        avg_middle = mean(middledata);
+        bit_stream(find(avg_middle > high_thresh)) = 1;
+        bit_stream(find((avg_middle < high_thresh) & (avg_middle > midpt))) = 1/3;
+        bit_stream(find((avg_middle < midpt)&(avg_middle > low_thresh))) = -1/3;
+        bit_stream(find(avg_middle < low_thresh)) = -1;
+        
+        nbrBits = length(bit_stream);
+        fDrive = sig_freq;
+        tPulse = 1/sig_freq;
+        ptsPerPulse = 50;
+
+        % Adds pts at 0.5 so that it transitions perfectly on each bit
+        diff = abs(conv(bit_stream, [1 -1]));
+        trig = reshape([diff; zeros(ptsPerPulse-1, length(diff))], 1, []);
+        
+        % Create the drive signal time vector
+        tDrive = linspace(0, nbrBits * tPulse, nbrBits * ptsPerPulse + 1);
+
+        % Create the drive signal
+        driveSig = zeros(1, ptsPerPulse*nbrBits + 1);
+        driveSig(1:end-1) = repelem(bit_stream, ptsPerPulse);
+        driveSig(find(trig == 1)) = .5;
+        driveSig = (one_lvl_mean-zero_lvl_mean)/2*driveSig+(one_lvl_mean+zero_lvl_mean)/2;
+        
+        O = 15;
+        offset = 6;
+
+        L = 2^O-1;
+
+        sig = prbs(O,L);
+        sig = sig*2-1;
+        sigP = -0.5 * circshift(sig, -offset);
+        sumSig = (sig+sigP);
+
+        bit_stream_prbs = zeros(1, length(sig));
+        bit_stream_prbs(find(sumSig == -1.5)) = -1;
+        bit_stream_prbs(find(sumSig == -.5)) = -1/3;
+        bit_stream_prbs(find(sumSig == .5)) = 1/3;
+        bit_stream_prbs(find(sumSig == 1.5)) = 1;
+        
+        bit_corr = conv(bit_stream, flip(bit_stream_prbs));
+        [corr_max prbs_start] = max(bit_corr)
+        shifted_prbs = circshift(bit_stream_prbs, -(length(bit_stream)-prbs_start))
+        shifted_prbs = shifted_prbs(1:length(bit_stream))
+%         shifted_prbs = bit_stream_prbs((length(bit_corr)-prbs_start):(length(bit_corr)-prbs_start+length(bit_stream)-1));
+        
+        prbsSig = zeros(1, ptsPerPulse*nbrBits + 1);
+        prbsSig(1:end-1) = repelem(shifted_prbs, ptsPerPulse);
+        prbsSig(find(trig == 1)) = .5;
+        prbsSig = (one_lvl_mean-zero_lvl_mean)/2*prbsSig+(one_lvl_mean+zero_lvl_mean)/2;
+      
         
 %         % Find waveform crossing points
 %         pct20 = 0.2*eye_amp + zero_lvl_mean;
@@ -270,78 +320,78 @@ for p=nbrTraces
             xlabel("Time [ps]");
             ylabel("Voltage [mV]");
 %             ylim([-1, 45])
-            print -depsc 0km
+%             print -depsc 0km
         end
     elseif(plot_data == 2)
-        % Plot time waveform
-        h = figure();
-        set(h,'WindowStyle','docked');
-        plot(time, wave); hold on;
-        plot(time_interp, wave_interp);
-        title("Eye Diagram - 6GHz signal - 4 GHz Bandwidth");
-        xlabel("Time [ps]");
-        ylabel("Voltage [V]");
-
-        % Plot eye diagram
-        h = figure();
-        set(h,'WindowStyle','docked');
-        plot(time_eye_ps, eye_mv);
-        xlim([time_eye_ps(1), time_eye_ps(end)]);
-        title("Eye Diagram - 6GHz signal - 4 GHz Bandwidth");
-        xlabel("Time [ps]");
-        ylabel("Voltage [mV]");
-        yline(high_thresh/mV, 'linewidth', 2);
-        yline(low_thresh/mV, 'linewidth', 2);
-        xline(-ten_pct/ps);
-        xline(ten_pct/ps);
-        yline(midpt/mV, 'linewidth', 2);
-
-        % Plot eye diagram gradient
-        h = figure();
-        set(h,'WindowStyle','docked');
-        surf(X, Y,scaled_eye');
-        view(0,90);
-        shading interp;
-        xlim([time_eye_ps(1), time_eye_ps(end)]);
-        cmap = colormap(turbo);
-        colorbar;
-        set(gca,'Color',cmap(1, :))
-
-        % Plot one-level voltage distribution
-        h = figure();
-        set(h,'WindowStyle','docked');
-        plothist(one_lvl_avg, 10)
-        title("One-Level Voltage Distribution")
-        xlabel("One-Level Voltage [V]")
-        ylabel("PDF")
-        legend("Experimental Data", "Gaussian Curve Fit")
-
-        % Plot zero-level voltage distribution
-        h = figure();
-        set(h,'WindowStyle','docked');
-        plothist(zero_lvl_avg, 10)
-        title("Zero-Level Voltage Distribution")
-        xlabel("Zero-Level Voltage Level [V]")
-        ylabel("PDF")
-        legend("Experimental Data", "Gaussian Curve Fit")
-
-        % Plot zero-level voltage distribution
-        h = figure();
-        set(h,'WindowStyle','docked');
-        plothist(mid0_lvl_avg, 10)
-        title("mid0 Voltage Distribution")
-        xlabel("mid0 Voltage Level [V]")
-        ylabel("PDF")
-        legend("Experimental Data", "Gaussian Curve Fit")
-        
-        % Plot zero-level voltage distribution
-        h = figure();
-        set(h,'WindowStyle','docked');
-        plothist(mid1_lvl_avg, 10)
-        title("mid1 Voltage Distribution")
-        xlabel("mid1 Voltage Level [V]")
-        ylabel("PDF")
-        legend("Experimental Data", "Gaussian Curve Fit")
+%         % Plot time waveform
+%         h = figure();
+%         set(h,'WindowStyle','docked');
+%         plot(time, wave); hold on;
+%         plot(time_interp, wave_interp);
+%         title("Eye Diagram - 6GHz signal - 4 GHz Bandwidth");
+%         xlabel("Time [ps]");
+%         ylabel("Voltage [V]");
+% 
+%         % Plot eye diagram
+%         h = figure();
+%         set(h,'WindowStyle','docked');
+%         plot(time_eye_ps, eye_mv);
+%         xlim([time_eye_ps(1), time_eye_ps(end)]);
+%         title("Eye Diagram - 6GHz signal - 4 GHz Bandwidth");
+%         xlabel("Time [ps]");
+%         ylabel("Voltage [mV]");
+%         yline(high_thresh/mV, 'linewidth', 2);
+%         yline(low_thresh/mV, 'linewidth', 2);
+%         xline(-ten_pct/ps);
+%         xline(ten_pct/ps);
+%         yline(midpt/mV, 'linewidth', 2);
+% 
+%         % Plot eye diagram gradient
+%         h = figure();
+%         set(h,'WindowStyle','docked');
+%         surf(X, Y,scaled_eye');
+%         view(0,90);
+%         shading interp;
+%         xlim([time_eye_ps(1), time_eye_ps(end)]);
+%         cmap = colormap(turbo);
+%         colorbar;
+%         set(gca,'Color',cmap(1, :))
+% 
+%         % Plot one-level voltage distribution
+%         h = figure();
+%         set(h,'WindowStyle','docked');
+%         plothist(one_lvl_avg, 10)
+%         title("One-Level Voltage Distribution")
+%         xlabel("One-Level Voltage [V]")
+%         ylabel("PDF")
+%         legend("Experimental Data", "Gaussian Curve Fit")
+% 
+%         % Plot zero-level voltage distribution
+%         h = figure();
+%         set(h,'WindowStyle','docked');
+%         plothist(zero_lvl_avg, 10)
+%         title("Zero-Level Voltage Distribution")
+%         xlabel("Zero-Level Voltage Level [V]")
+%         ylabel("PDF")
+%         legend("Experimental Data", "Gaussian Curve Fit")
+% 
+%         % Plot zero-level voltage distribution
+%         h = figure();
+%         set(h,'WindowStyle','docked');
+%         plothist(mid0_lvl_avg, 10)
+%         title("mid0 Voltage Distribution")
+%         xlabel("mid0 Voltage Level [V]")
+%         ylabel("PDF")
+%         legend("Experimental Data", "Gaussian Curve Fit")
+%         
+%         % Plot zero-level voltage distribution
+%         h = figure();
+%         set(h,'WindowStyle','docked');
+%         plothist(mid1_lvl_avg, 10)
+%         title("mid1 Voltage Distribution")
+%         xlabel("mid1 Voltage Level [V]")
+%         ylabel("PDF")
+%         legend("Experimental Data", "Gaussian Curve Fit")
 %         % Plot Jitter distribution
 %         h = figure();
 %         set(h,'WindowStyle','docked');
@@ -366,6 +416,21 @@ for p=nbrTraces
 %         title("Fall Time Distribution");
 %         xlabel("Fall Time [ps]");
 %         ylabel("PDF");
+
+        h = figure();
+        set(h,'WindowStyle','docked');
+        endNbr = 1000;
+        plot(time_interp(1:endNbr)/ps, wave_interp(1:endNbr)/mV);
+        hold on;
+        plot(time_interp(65:endNbr)/ps, driveSig(1:endNbr-64)/mV);
+        plot(time_interp(65:endNbr)/ps, prbsSig(1:endNbr-64)/mV);
+        legend('original','recovered','prbs');
+        xlim([time_interp(1)/ps, time_interp(endNbr)/ps]);
+        
+        h = figure();
+        set(h,'WindowStyle','docked');
+        
+        plot(bit_corr)
     elseif(plot_data == 3)
         subplot(3, 3, p)
         surf(X, Y, scaled_eye');

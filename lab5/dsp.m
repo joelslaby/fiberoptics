@@ -15,7 +15,7 @@ plot_data = 2;
 wave_type = 0;
 select = 1;
 
-filename = 'lab4/media_day2/lab4_009_ALL.csv';
+filename = 'lab4/media_day2/lab5_000_ALL.csv';
     
 T = readtable(filename);
 data = table2array(T);
